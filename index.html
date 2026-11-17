@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlissBridge | Simplificador de Texto y Traductor Blissymbolics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* High contrast mode styles */
+    body.high-contrast {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+    body.high-contrast .hc-card {
+      background-color: #111111 !important;
+      border-color: #facc15 !important;
+      border-width: 2px !important;
+      color: #ffffff !important;
+    }
+    body.high-contrast .hc-text-muted {
+      color: #e5e7eb !important;
+    }
+    body.high-contrast .hc-bliss-card {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+      border: 3px solid #facc15 !important;
+    }
+    /* Bliss Guide Lines */
+    .bliss-grid-bg {
+      background-image: 
+        linear-gradient(to bottom, 
+          transparent 14%, 
+          rgba(148, 163, 184, 0.25) 14%, rgba(148, 163, 184, 0.25) 15%, 
+          transparent 15%, transparent 29%, 
+          rgba(59, 130, 246, 0.35) 29%, rgba(59, 130, 246, 0.35) 31%, 
+          transparent 31%, transparent 49%, 
+          rgba(148, 163, 184, 0.2) 49%, rgba(148, 163, 184, 0.2) 50%, 
+          transparent 50%, transparent 69%, 
+          rgba(16, 185, 129, 0.45) 69%, rgba(16, 185, 129, 0.45) 71%, 
+          transparent 71%);
+    }
+    .bliss-card-active {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+      border-color: #2563eb !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen transition-colors duration-200">
+
+  <!-- Top Navigation & Accessibility Bar -->
+  <header class="bg-white border-b-2 border-slate-200 sticky top-0 z-30 hc-card">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+          <!-- Bliss Symbol for "Communication / Language" (Mouth + Ear + Action) -->
+          <svg viewBox="0 0 100 100" class="w-8 h-8 stroke-current fill-none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 40 20 L 50 10 L 60 20" />
+            <circle cx="38" cy="52" r="14" />
+            <path d="M 62 36 C 78 36 78 68 62 68" />
+            <line x1="15" y1="78" x2="85" y2="78" stroke-width="3" stroke-dasharray="4 4"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            BlissBridge
+            <span class="text-xs font-semibold uppercase px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">AAC &amp; Easy Read</span>
+          </h1>
+          <p id="appSubtitle" class="text-xs sm:text-sm text-slate-600 hc-text-muted">
+            Bilingual Text Simplifier &amp; Blissymbolics Visual Translator (ES / EN)
+          </p>
+        </div>
+      </div>
+
+      <!-- Accessibility & UI Controls -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Live Engine Status Pill -->
+        <div id="engineStatusBadge" class="px-3 py-1.5 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-sm" title="Active Simplification & Bliss Engine">
+          <span id="engineStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="engineStatusText">Engine: Ready (Auto /api/simplify → Fallback)</span>
+        </div>
+
+        <!-- Deploy Kit Modal Trigger -->
+        <button id="deployKitBtn" onclick="openDeployModal()" class="px-3 py-2 rounded-xl border-2 border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition focus:ring-4 focus:ring-indigo-300" title="View & Copy Vercel Serverless Files (api/simplify.js & package.json)">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span id="deployKitBtnLabel">Vercel Code</span>
+        </button>
+
+        <!-- Toggle Grid Lines -->
+        <button id="toggleGridBtn" onclick="toggleBlissGrid()" class="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white hover:bg-slate-100 text-slate-800 text-xs sm:text-sm font-semibold flex items-center gap-2 transition focus:ring-4 focus:ring-blue-300" title="Show/Hide Bliss Sky & Earth Reference Lines">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          <span id="gridBtnLabel">Grid: ON</span>
+        </button>
+
+        <!-- Toggle Color Coding -->
+        <button id="toggleColorBtn" onclick="toggleColorCoding()" class="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white hover:bg-slate-100 text-slate-800 text-xs sm:text-sm font-semibold flex items-center gap-2 transition focus:ring-4 focus:ring-blue-300" title="Toggle Fitzgerald Key AAC Color Coding">
+          <span class="w-3 h-3 rounded-full bg-amber-400 inline-block border border-slate-400"></span>
+          <span id="colorBtnLabel">AAC Colors: ON</span>
+        </button>
+
+        <!-- High Contrast Toggle -->
+        <button id="contrastBtn" onclick="toggleHighContrast()" class="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-900 text-white hover:bg-slate-700 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition focus:ring-4 focus:ring-yellow-400">
+          <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14V4a6 6 0 110 12z"/>
+          </svg>
+          <span>Contrast</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Top Grid: Input & Settings -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Input Text & Presets (7 cols) -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border-2 border-slate-200 p-5 sm:p-6 shadow-sm hc-card flex flex-col justify-between space-y-4">
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label for="inputText" class="text-base sm:text-lg font-bold flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-blue-600 text-white inline-flex items-center justify-center text-sm">1</span>
+              <span>Input Text / Texto de Entrada</span>
+            </label>
+
+            <!-- Language Selector -->
+            <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-300">
+              <button type="button" onclick="setLanguage('es')" id="langEsBtn" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition bg-blue-600 text-white shadow-sm">
+                🇪🇸 Español
+              </button>
+              <button type="button" onclick="setLanguage('en')" id="langEnBtn" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition text-slate-700 hover:text-slate-900">
+                🇬🇧 English
+              </button>
+            </div>
+          </div>
+
+          <div class="relative">
+            <textarea
+              id="inputText"
+              rows="4"
+              class="w-full rounded-xl border-2 border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 p-4 text-base sm:text-lg text-slate-900 placeholder-slate-400 transition resize-y"
+              placeholder="Escribe o pega un texto complejo aquí... / Type or paste complex text here..."
+            ></textarea>
+            <button
+              onclick="clearInput()"
+              class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition"
+              title="Clear text / Borrar texto"
+            >
+              ✕ Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Preset Examples -->
+        <div class="space-y-2 pt-1">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 hc-text-muted flex items-center justify-between">
+            <span id="presetsHeading">Try an example (Ejemplos rápidos):</span>
+          </div>
+          <div id="presetButtonsContainer" class="flex flex-wrap gap-2">
+            <!-- Populated dynamically by JS based on selected language -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Simplification Level & Action Button (5 cols) -->
+      <div class="lg:col-span-5 bg-white rounded-2xl border-2 border-slate-200 p-5 sm:p-6 shadow-sm hc-card flex flex-col justify-between space-y-5">
+        <div class="space-y-4">
+          <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-blue-600 text-white inline-flex items-center justify-center text-sm">2</span>
+            <span id="levelHeading">Simplification Mode / Nivel</span>
+          </h2>
+
+          <!-- Mode Radio Cards -->
+          <div class="grid grid-cols-1 gap-3" role="radiogroup" aria-label="Simplification Level">
+            <button
+              type="button"
+              id="modeEasyBtn"
+              onclick="setSimplificationMode('easy_read')"
+              class="text-left p-3.5 rounded-xl border-2 border-blue-600 bg-blue-50/70 transition flex items-start gap-3"
+            >
+              <div class="mt-0.5 w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center flex-shrink-0">
+                <div id="modeEasyDot" class="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
+              </div>
+              <div>
+                <div class="font-bold text-slate-900 text-sm sm:text-base" id="modeEasyTitle">
+                  Lectura Fácil / Easy Read (SVO)
+                </div>
+                <p class="text-xs text-slate-600 mt-0.5" id="modeEasyDesc">
+                  Oraciones claras, literales y directas (Sujeto + Verbo + Objeto) conservando los detalles importantes.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              id="modeCoreBtn"
+              onclick="setSimplificationMode('bliss_core')"
+              class="text-left p-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white transition flex items-start gap-3"
+            >
+              <div class="mt-0.5 w-5 h-5 rounded-full border-2 border-slate-400 flex items-center justify-center flex-shrink-0">
+                <div id="modeCoreDot" class="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+              </div>
+              <div>
+                <div class="font-bold text-slate-900 text-sm sm:text-base" id="modeCoreTitle">
+                  Vocabulario Esencial / Telegraphic Bliss Core
+                </div>
+                <p class="text-xs text-slate-600 mt-0.5" id="modeCoreDesc">
+                  Conceptos esenciales puros sin palabras conectoras innecesarias. Ideal para tableros de comunicación CAA.
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Primary Action Button -->
+        <div class="space-y-3 pt-2">
+          <button
+            id="simplifyBtn"
+            onclick="processTextWithGemini()"
+            class="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-base sm:text-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-3 focus:ring-4 focus:ring-blue-300 disabled:opacity-60"
+          >
+            <svg id="btnSparkleIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span id="simplifyBtnText">Simplificar y Crear Símbolos Bliss</span>
+          </button>
+
+          <!-- Status / Error Message Box -->
+          <div id="statusMessage" class="hidden rounded-xl p-3 text-xs sm:text-sm font-medium border"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton -->
+    <section id="loadingSection" class="hidden bg-white rounded-2xl border-2 border-blue-200 p-8 text-center shadow-sm hc-card">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 animate-pulse mb-3">
+        <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+      </div>
+      <h3 id="loadingTitle" class="text-lg font-bold text-slate-800">Analizando texto y componiendo símbolos Bliss...</h3>
+      <p id="loadingSub" class="text-sm text-slate-500 mt-1">Extrayendo radicales semánticos, indicadores de acción y estructura SVO con Gemini AI.</p>
+    </section>
+
+    <!-- Results Section -->
+    <section id="resultsSection" class="space-y-6">
+      
+      <!-- Simplified Text Banner + Speech Controls -->
+      <div class="bg-white rounded-2xl border-2 border-slate-200 p-5 sm:p-6 shadow-sm hc-card">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white inline-flex items-center justify-center text-sm font-bold">✓</span>
+            <h2 class="text-lg sm:text-xl font-extrabold" id="simplifiedOutputHeading">
+              Texto Simplificado (Lectura Fácil)
+            </h2>
+          </div>
+
+          <!-- TTS Controls -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              id="speakAllBtn"
+              onclick="speakSimplifiedSentence()"
+              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center gap-2 shadow-sm transition focus:ring-4 focus:ring-emerald-300"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+              </svg>
+              <span id="speakBtnText">Escuchar Frase</span>
+            </button>
+
+            <button
+              id="stopSpeechBtn"
+              onclick="stopSpeech()"
+              class="hidden px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm flex items-center gap-1.5 shadow-sm transition"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <rect x="5" y="5" width="10" height="10" rx="1"/>
+              </svg>
+              <span>Stop</span>
+            </button>
+
+            <button
+              onclick="copySimplifiedText()"
+              class="px-3.5 py-2.5 rounded-xl border-2 border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-sm flex items-center gap-1.5 transition"
+              title="Copy simplified text"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              <span id="copyBtnText">Copiar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Big Accessible Simplified Sentence Display -->
+        <div class="p-4 sm:p-5 rounded-xl bg-slate-50 border-2 border-slate-200 hc-card">
+          <p id="simplifiedTextDisplay" class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 leading-relaxed tracking-tight">
+            <!-- Populated by JS -->
+          </p>
+          <p id="secondaryTranslationDisplay" class="text-sm sm:text-base text-slate-500 hc-text-muted mt-2 font-medium">
+            <!-- Shows secondary language reference -->
+          </p>
+        </div>
+      </div>
+
+      <!-- Blissymbolics Visual Sentence Board -->
+      <div class="bg-white rounded-2xl border-2 border-slate-200 p-5 sm:p-6 shadow-sm hc-card space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg sm:text-xl font-extrabold flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-indigo-600 text-white inline-flex items-center justify-center text-sm">3</span>
+              <span id="blissBoardTitle">Versión en Símbolos Bliss (Blissymbolics)</span>
+            </h2>
+            <p id="blissBoardSub" class="text-xs sm:text-sm text-slate-500 hc-text-muted mt-0.5">
+              Pulsa cualquier tarjeta para escuchar la palabra y ver cómo se construye su símbolo Bliss.
+            </p>
+          </div>
+
+          <!-- AAC Fitzgerald Key Legend -->
+          <div id="colorLegend" class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300">Persona / Pronombre</span>
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">Verbo / Acción (^)</span>
+            <span class="px-2.5 py-1 rounded-lg bg-orange-100 text-orange-900 border border-orange-300">Sustantivo / Objeto</span>
+            <span class="px-2.5 py-1 rounded-lg bg-sky-100 text-sky-900 border border-sky-300">Descriptor / Sentimiento</span>
+            <span class="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-900 border border-purple-300">Tiempo / Lugar / Social</span>
+          </div>
+        </div>
+
+        <!-- Bliss Symbol Cards Grid -->
+        <div id="blissCardsContainer" class="flex flex-wrap items-stretch gap-4 pt-2">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Interactive Symbol Inspector Drawer (shows when clicking a Bliss card) -->
+        <div id="symbolInspector" class="mt-4 rounded-xl bg-slate-50 border-2 border-slate-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 hc-card">
+          <div class="flex items-center gap-4">
+            <div id="inspectorSvgBox" class="w-20 h-20 rounded-xl bg-white border-2 border-slate-300 flex items-center justify-center flex-shrink-0 bliss-grid-bg">
+              <!-- Selected SVG preview -->
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="inspectorWord" class="text-lg font-extrabold text-slate-900">Selecciona una tarjeta Bliss</span>
+                <span id="inspectorGrammarBadge" class="text-xs font-bold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800">Info</span>
+              </div>
+              <p id="inspectorExplanation" class="text-xs sm:text-sm text-slate-600 hc-text-muted mt-1">
+                Cada símbolo Bliss se compone de formas geométricas puras: línea de cielo arriba, línea de tierra abajo, e indicadores gramaticales como ^ (acción/verbo) o ◊ (objeto/cosa).
+              </p>
+            </div>
+          </div>
+          <button
+            id="inspectorSpeakBtn"
+            onclick="speakInspectedCard()"
+            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0"
+          >
+            🔊 <span id="inspectorSpeakLabel">Pronunciar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Blissymbolics Visual Grammar Reference Guide -->
+      <div class="bg-white rounded-2xl border-2 border-slate-200 p-5 sm:p-6 shadow-sm hc-card">
+        <h3 class="text-base font-extrabold text-slate-800 mb-3 flex items-center gap-2">
+          <span>📐 Guía Rápida de Gramática Visual Blissymbolics / Bliss Visual Indicators</span>
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center text-xs">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xl font-black text-emerald-700 mb-1">∧</div>
+            <div class="font-bold text-slate-800">Acción / Verbo</div>
+            <div class="text-slate-500">Cono sobre el símbolo</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xl font-black text-sky-700 mb-1">∨</div>
+            <div class="font-bold text-slate-800">Evaluación / Adj.</div>
+            <div class="text-slate-500">Cono invertido arriba</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xl font-black text-orange-700 mb-1">□</div>
+            <div class="font-bold text-slate-800">Cosa / Sustantivo</div>
+            <div class="text-slate-500">Cuadrado arriba</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xl font-black text-purple-700 mb-1">×</div>
+            <div class="font-bold text-slate-800">Plural (Muchos)</div>
+            <div class="text-slate-500">Multiplicador arriba</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xl font-black text-rose-700 mb-1">─│</div>
+            <div class="font-bold text-slate-800">Negación (No)</div>
+            <div class="text-slate-500">Línea con barra</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xl font-black text-blue-700 mb-1">───</div>
+            <div class="font-bold text-slate-800">Cielo y Tierra</div>
+            <div class="text-slate-500">Líneas guía azules/verdes</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Vercel Serverless Deployment Kit Modal -->
+  <div id="deployModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl border-2 border-slate-300 max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col hc-card">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+            <span>🚀 Ready-to-Deploy Vercel Serverless Kit</span>
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 hc-text-muted">
+            Save this page as <code class="font-mono bg-slate-100 px-1.5 py-0.5 rounded">index.html</code> alongside these two files and set <code class="font-mono bg-slate-100 px-1.5 py-0.5 rounded">GEMINI_API_KEY</code> in Vercel.
+          </p>
+        </div>
+        <button onclick="closeDeployModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm">
+          ✕
+        </button>
+      </div>
+
+      <div class="overflow-y-auto space-y-4 pr-1 text-xs sm:text-sm">
+        <!-- File 1: api/simplify.js -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-800 font-mono">1. api/simplify.js (Vercel Serverless Gemini Endpoint)</span>
+            <button onclick="copyDeployCode('vercelApiCode', 'copyApiBtn')" id="copyApiBtn" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition">
+              Copy api/simplify.js
+            </button>
+          </div>
+          <pre id="vercelApiCode" class="p-3.5 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed"></pre>
+        </div>
+
+        <!-- File 2: package.json -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-800 font-mono">2. package.json</span>
+            <button onclick="copyDeployCode('vercelPkgCode', 'copyPkgBtn')" id="copyPkgBtn" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition">
+              Copy package.json
+            </button>
+          </div>
+          <pre id="vercelPkgCode" class="p-3.5 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed"></pre>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-200 pt-3 flex items-center justify-between text-xs text-slate-500">
+        <span>Pipeline order: 1) POST /api/simplify → 2) Direct Gemini API → 3) Built-in Offline Bliss Engine</span>
+        <button onclick="closeDeployModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /********************************************************************
+     * 1. APPLICATION STATE & PRESETS (BILINGUAL ES / EN)
+     ********************************************************************/
+    const state = {
+      lang: 'es', // 'es' or 'en'
+      mode: 'easy_read', // 'easy_read' or 'bliss_core'
+      showGrid: true,
+      showColors: true,
+      highContrast: false,
+      currentResult: null,
+      inspectedCardIndex: 0,
+      lastEngineUsed: 'offline_ready'
+    };
+
+    const PRESETS = {
+      es: [
+        {
+          label: "🩺 Dolor de cabeza y agua",
+          text: "Disculpe, me encuentro bastante indispuesto porque me duele muchísimo la cabeza desde esta mañana y necesitaría beber un vaso de agua fresca y descansar en casa."
+        },
+        {
+          label: "📅 Cambio de horario escolar",
+          text: "Mañana por la mañana no podremos asistir a la escuela en autobús porque tenemos programada una cita médica importante en el hospital con el doctor."
+        },
+        {
+          label: "💛 Emociones y ruido",
+          text: "Me siento un poco nervioso y abrumado cuando hay demasiadas personas hablando fuerte en esta habitación; prefiero escuchar música tranquila."
+        },
+        {
+          label: "🍎 Hambre y comida",
+          text: "Todavía no he almorzado hoy y tengo mucha hambre; me gustaría comer comida caliente con mi familia en el comedor."
+        }
+      ],
+      en: [
+        {
+          label: "🩺 Headache & Water",
+          text: "Excuse me, I am feeling quite unwell because I have had a terrible headache since this morning, and I would really appreciate drinking a glass of cold water and resting at home."
+        },
+        {
+          label: "📅 Schedule & Doctor",
+          text: "Tomorrow morning we will not be able to go to school on the bus because we have an important medical appointment scheduled with the doctor at the hospital."
+        },
+        {
+          label: "💛 Feelings & Quiet",
+          text: "I feel anxious and overwhelmed whenever too many people are talking loudly in this room; I want to go outside and listen to calm music."
+        },
+        {
+          label: "🍎 Hungry for Lunch",
+          text: "I have not eaten anything yet today and I am very hungry; I would like to eat hot food with my family at the table."
+        }
+      ]
+    };
+
+    /********************************************************************
+     * 2. AUTHENTIC BLISSYMBOLICS RADICAL & COMPOSITIONAL SVG ENGINE
+     *
+     * Blissymbolics (created by Charles K. Bliss) is built on a semantic
+     * matrix between the Sky Line (y=30) and Earth Line (y=70).
+     * Below we define ~45 core graphical radicals + grammar indicators
+     * that can combine to represent any core concept cleanly.
+     ********************************************************************/
+    const BLISS_RADICALS = {
+      // Person / Human (vertical line from sky to earth with base foot)
+      person: `
+        <line x1="50" y1="32" x2="50" y2="70" />
+        <line x1="40" y1="70" x2="60" y2="70" />
+      `,
+      // Person + 1 (I / Me / Yo)
+      person_1: `
+        <line x1="42" y1="32" x2="42" y2="70" />
+        <line x1="33" y1="70" x2="51" y2="70" />
+        <line x1="65" y1="44" x2="65" y2="58" />
+      `,
+      // Person + 2 (You / Tú)
+      person_2: `
+        <line x1="38" y1="32" x2="38" y2="70" />
+        <line x1="29" y1="70" x2="47" y2="70" />
+        <path d="M 60 44 C 68 44 68 51 60 54 L 68 54" />
+      `,
+      // Person + 3 (He / She / Él / Ella)
+      person_3: `
+        <line x1="38" y1="32" x2="38" y2="70" />
+        <line x1="29" y1="70" x2="47" y2="70" />
+        <path d="M 60 43 C 68 43 68 50 62 50 C 68 50 68 57 60 57" />
+      `,
+      // Heart / Feeling / Emotion (Bliss heart spans mid-to-earth)
+      heart: `
+        <path d="M 50 70 L 34 52 C 26 42 40 32 50 43 C 60 32 74 42 66 52 Z" />
+      `,
+      // Mind / Brain / Think (Top dome / skull arch)
+      mind: `
+        <path d="M 32 52 C 32 30 68 30 68 52" />
+      `,
+      // Mouth / Speak / Oral (Circle at midline)
+      mouth: `
+        <circle cx="50" cy="52" r="14" />
+      `,
+      // Eye / See / Look (Circle with center pupil)
+      eye: `
+        <circle cx="50" cy="50" r="14" />
+        <circle cx="50" cy="50" r="2.5" fill="currentColor" />
+      `,
+      // Ear / Hear / Listen (Question-mark like auricle curve)
+      ear: `
+        <path d="M 42 36 C 64 36 64 62 46 62 C 42 62 40 66 44 69" />
+      `,
+      // Water / Liquid (Bliss wave line)
+      water: `
+        <path d="M 26 52 Q 38 40 50 52 T 74 52" />
+      `,
+      // Food / Nourishment (Mouth circle over earth line)
+      food: `
+        <circle cx="50" cy="46" r="11" />
+        <line x1="32" y1="68" x2="68" y2="68" />
+      `,
+      // Drink (Mouth + Water wave)
+      drink: `
+        <circle cx="38" cy="48" r="10" />
+        <path d="M 52 52 Q 60 43 68 52 T 82 52" />
+      `,
+      // House / Building / Home (Roof peak + walls on earth)
+      house: `
+        <path d="M 32 70 L 32 48 L 50 32 L 68 48 L 68 70" />
+      `,
+      // Medical / Hospital / Doctor (Cross inside/near shelter)
+      medical: `
+        <line x1="50" y1="36" x2="50" y2="66" />
+        <line x1="35" y1="51" x2="65" y2="51" />
+      `,
+      // Legs / Walk / Go (Inverted V legs standing on earth)
+      legs: `
+        <path d="M 36 70 L 50 44 L 64 70" />
+      `,
+      // Wheel / Vehicle / Bus / Car (Circle on earth with axle)
+      wheel: `
+        <circle cx="50" cy="54" r="15" />
+        <line x1="39" y1="43" x2="61" y2="65" />
+        <line x1="61" y1="43" x2="39" y2="65" />
+      `,
+      // Sun / Day / Time (Large circle in sky/mid)
+      sun: `
+        <circle cx="50" cy="48" r="16" />
+      `,
+      // Moon / Night / Sleep (Crescent arc)
+      moon: `
+        <path d="M 46 34 C 64 40 64 62 46 68 C 56 58 56 44 46 34 Z" />
+      `,
+      // Bed / Rest / Sleep (Horizontal platform on legs)
+      bed: `
+        <line x1="28" y1="56" x2="72" y2="56" />
+        <line x1="28" y1="44" x2="28" y2="70" />
+        <line x1="72" y1="56" x2="72" y2="70" />
+      `,
+      // Book / School / Knowledge (Open pages rectangle)
+      book: `
+        <rect x="30" y="36" width="40" height="30" rx="2" />
+        <line x1="50" y1="36" x2="50" y2="66" />
+      `,
+      // Chair / Sit / Wait (L-shaped seat on legs)
+      chair: `
+        <path d="M 38 36 L 38 54 L 60 54 L 60 70 M 38 54 L 38 70" />
+      `,
+      // Up / Happy / Positive (Upward vertical arrow)
+      arrow_up: `
+        <line x1="50" y1="68" x2="50" y2="34" />
+        <path d="M 40 44 L 50 34 L 60 44" />
+      `,
+      // Down / Sad / Negative (Downward vertical arrow)
+      arrow_down: `
+        <line x1="50" y1="34" x2="50" y2="68" />
+        <path d="M 40 58 L 50 68 L 60 58" />
+      `,
+      // Forward / Future / Tomorrow / To (Right arrow)
+      arrow_right: `
+        <line x1="28" y1="52" x2="72" y2="52" />
+        <path d="M 60 42 L 72 52 L 60 62" />
+      `,
+      // Backward / Past / Yesterday (Left arrow)
+      arrow_left: `
+        <line x1="72" y1="52" x2="28" y2="52" />
+        <path d="M 40 42 L 28 52 L 40 62" />
+      `,
+      // Negation / Not / No (Horizontal line with vertical slash)
+      negation: `
+        <line x1="28" y1="52" x2="72" y2="52" />
+        <line x1="50" y1="36" x2="50" y2="68" />
+      `,
+      // Question / What / Where / Who
+      question: `
+        <path d="M 40 40 C 40 30 60 30 60 42 C 60 50 50 50 50 58" />
+        <circle cx="50" cy="67" r="2" fill="currentColor" />
+      `,
+      // Hand / Hold / Help / Give
+      hand: `
+        <path d="M 35 64 L 35 44 L 58 44" />
+        <line x1="35" y1="54" x2="54" y2="54" />
+      `,
+      // Pain / Hurt / Ache (Lightning / sharp zig-zag)
+      pain: `
+        <path d="M 56 32 L 40 50 L 58 52 L 42 70" />
+      `,
+      // Fire / Hot / Warm (Flame rising from earth)
+      fire: `
+        <path d="M 42 70 C 36 56 50 48 48 34 C 60 46 64 58 56 70" />
+      `,
+      // Cold / Ice (Horizontal bar with crystals)
+      cold: `
+        <line x1="30" y1="52" x2="70" y2="52" />
+        <line x1="42" y1="42" x2="58" y2="62" />
+        <line x1="58" y1="42" x2="42" y2="62" />
+      `,
+      // Plus / With / And / Together
+      plus: `
+        <line x1="50" y1="38" x2="50" y2="64" />
+        <line x1="37" y1="51" x2="63" y2="51" />
+      `,
+      // Inside / In / Room (Enclosure square with center dot)
+      enclosure: `
+        <rect x="32" y="36" width="36" height="32" />
+        <circle cx="50" cy="52" r="3" fill="currentColor" />
+      `,
+      // Music / Sound (Ear + Musical wave)
+      music: `
+        <path d="M 32 38 C 48 38 48 62 34 62" />
+        <path d="M 52 54 Q 60 42 68 54 T 82 54" />
+      `,
+      // Time / Clock / Now (Vertical pointer inside arc)
+      time: `
+        <circle cx="50" cy="52" r="16" />
+        <polyline points="50,42 50,52 58,52" />
+      `
+    };
+
+    /**
+     * Builds a composite Blissymbol SVG based on up to 2 semantic radicals
+     * and a grammatical indicator at the top (y=12..24).
+     */
+    function renderBlissSVG(concept) {
+      const r1 = concept.primaryRadical || 'enclosure';
+      const r2 = concept.secondaryRadical || 'none';
+      const indicator = concept.blissIndicator || 'none';
+
+      // Build Grammar Indicator at the top sky line (y=10..24)
+      let indicatorSvg = '';
+      if (indicator === 'action') {
+        // Action / Verb cone ^
+        indicatorSvg = `<path d="M 41 23 L 50 12 L 59 23" stroke="#059669" stroke-width="5" />`;
+      } else if (indicator === 'evaluation') {
+        // Evaluation / Descriptor v
+        indicatorSvg = `<path d="M 41 13 L 50 24 L 59 13" stroke="#0284c7" stroke-width="5" />`;
+      } else if (indicator === 'thing') {
+        // Concrete Thing / Noun small square
+        indicatorSvg = `<rect x="44" y="12" width="12" height="11" stroke="#d97706" stroke-width="4.5" />`;
+      } else if (indicator === 'plural') {
+        // Plural x
+        indicatorSvg = `
+          <line x1="44" y1="12" x2="56" y2="24" stroke="#7c3aed" stroke-width="4.5" />
+          <line x1="56" y1="12" x2="44" y2="24" stroke="#7c3aed" stroke-width="4.5" />
+        `;
+      } else if (indicator === 'past') {
+        // Past parabolic hook (
+        indicatorSvg = `<path d="M 54 11 C 44 14 44 22 54 25" stroke="#059669" stroke-width="4.5" />`;
+      } else if (indicator === 'future') {
+        // Future parabolic hook )
+        indicatorSvg = `<path d="M 46 11 C 56 14 56 22 46 25" stroke="#059669" stroke-width="4.5" />`;
+      }
+
+      const svg1 = BLISS_RADICALS[r1] || BLISS_RADICALS.enclosure;
+      const svg2 = (r2 && r2 !== 'none' && r2 !== r1 && BLISS_RADICALS[r2]) ? BLISS_RADICALS[r2] : null;
+
+      let bodyContent = '';
+      if (!svg2) {
+        bodyContent = `<g transform="translate(0, 2)">${svg1}</g>`;
+      } else {
+        // Combine primary radical on the left and secondary radical on the right
+        bodyContent = `
+          <g transform="translate(-17, 4) scale(0.76)" style="transform-origin: 50px 50px;">
+            ${svg1}
+          </g>
+          <g transform="translate(20, 4) scale(0.76)" style="transform-origin: 50px 50px;">
+            ${svg2}
+          </g>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 92" class="w-full h-full stroke-slate-900 fill-none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${concept.word}">
+          ${indicatorSvg}
+          ${bodyContent}
+        </svg>
+      `;
+    }
+
+    /********************************************************************
+     * 3. FALLBACK INSTANT DEMO DATA (LOADED INITIALLY)
+     ********************************************************************/
+    const INITIAL_DEMO = {
+      es: {
+        simplifiedText: "Yo tengo dolor de cabeza hoy. Yo quiero beber agua fría y descansar en casa.",
+        secondaryTranslation: "I have a headache today. I want to drink cold water and rest at home.",
+        concepts: [
+          {
+            word: "Yo",
+            secondaryWord: "I / Me",
+            grammarRole: "pronoun",
+            blissIndicator: "none",
+            primaryRadical: "person_1",
+            secondaryRadical: "none",
+            blissExplanation: "Símbolo de persona con el número 1 (primera persona: Yo)."
+          },
+          {
+            word: "tener",
+            secondaryWord: "have",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "hand",
+            secondaryRadical: "plus",
+            blissExplanation: "Mano que sostiene + signo más con indicador de acción (^)."
+          },
+          {
+            word: "dolor de cabeza",
+            secondaryWord: "headache",
+            grammarRole: "noun",
+            blissIndicator: "thing",
+            primaryRadical: "mind",
+            secondaryRadical: "pain",
+            blissExplanation: "Arco superior de la cabeza/mente combinado con el rayo de dolor."
+          },
+          {
+            word: "hoy",
+            secondaryWord: "today",
+            grammarRole: "time",
+            blissIndicator: "none",
+            primaryRadical: "sun",
+            secondaryRadical: "time",
+            blissExplanation: "Círculo del sol (día) junto al indicador de tiempo presente."
+          },
+          {
+            word: "querer",
+            secondaryWord: "want",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "heart",
+            secondaryRadical: "fire",
+            blissExplanation: "Sentimiento (corazón) + deseo intenso con indicador de verbo (^)."
+          },
+          {
+            word: "beber",
+            secondaryWord: "drink",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "drink",
+            secondaryRadical: "none",
+            blissExplanation: "Círculo de la boca junto a la onda de líquido con indicador de acción (^)."
+          },
+          {
+            word: "agua",
+            secondaryWord: "water",
+            grammarRole: "noun",
+            blissIndicator: "thing",
+            primaryRadical: "water",
+            secondaryRadical: "none",
+            blissExplanation: "Onda sinusoidal clásica de Bliss para el agua y los líquidos."
+          },
+          {
+            word: "fría",
+            secondaryWord: "cold",
+            grammarRole: "adjective",
+            blissIndicator: "evaluation",
+            primaryRadical: "cold",
+            secondaryRadical: "none",
+            blissExplanation: "Cristal de hielo con indicador de evaluación/adjetivo (v)."
+          },
+          {
+            word: "descansar",
+            secondaryWord: "rest",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "bed",
+            secondaryRadical: "person",
+            blissExplanation: "Cama horizontal de reposo + persona con indicador de acción (^)."
+          },
+          {
+            word: "en casa",
+            secondaryWord: "at home",
+            grammarRole: "place",
+            blissIndicator: "none",
+            primaryRadical: "house",
+            secondaryRadical: "heart",
+            blissExplanation: "Edificio con tejado protector + corazón (hogar)."
+          }
+        ]
+      },
+      en: {
+        simplifiedText: "I have a headache today. I want to drink cold water and rest at home.",
+        secondaryTranslation: "Yo tengo dolor de cabeza hoy. Yo quiero beber agua fría y descansar en casa.",
+        concepts: [
+          {
+            word: "I",
+            secondaryWord: "Yo",
+            grammarRole: "pronoun",
+            blissIndicator: "none",
+            primaryRadical: "person_1",
+            secondaryRadical: "none",
+            blissExplanation: "Person radical combined with number 1 (First person pronoun: I)."
+          },
+          {
+            word: "have",
+            secondaryWord: "tener",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "hand",
+            secondaryRadical: "plus",
+            blissExplanation: "Holding hand + addition sign with top action indicator (^)."
+          },
+          {
+            word: "headache",
+            secondaryWord: "dolor de cabeza",
+            grammarRole: "noun",
+            blissIndicator: "thing",
+            primaryRadical: "mind",
+            secondaryRadical: "pain",
+            blissExplanation: "Head dome radical combined with sharp pain zig-zag."
+          },
+          {
+            word: "today",
+            secondaryWord: "hoy",
+            grammarRole: "time",
+            blissIndicator: "none",
+            primaryRadical: "sun",
+            secondaryRadical: "time",
+            blissExplanation: "Sun circle (day) paired with present time marker."
+          },
+          {
+            word: "want",
+            secondaryWord: "querer",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "heart",
+            secondaryRadical: "fire",
+            blissExplanation: "Heart (feeling) + flame (desire) under action indicator (^)."
+          },
+          {
+            word: "drink",
+            secondaryWord: "beber",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "drink",
+            secondaryRadical: "none",
+            blissExplanation: "Mouth circle + water wave under top action indicator (^)."
+          },
+          {
+            word: "cold",
+            secondaryWord: "fría",
+            grammarRole: "adjective",
+            blissIndicator: "evaluation",
+            primaryRadical: "cold",
+            secondaryRadical: "none",
+            blissExplanation: "Ice crystal symbol with top evaluation/descriptor cone (v)."
+          },
+          {
+            word: "water",
+            secondaryWord: "agua",
+            grammarRole: "noun",
+            blissIndicator: "thing",
+            primaryRadical: "water",
+            secondaryRadical: "none",
+            blissExplanation: "Authentic Blissymbol wave line representing water/liquid."
+          },
+          {
+            word: "rest",
+            secondaryWord: "descansar",
+            grammarRole: "verb",
+            blissIndicator: "action",
+            primaryRadical: "bed",
+            secondaryRadical: "person",
+            blissExplanation: "Horizontal bed radical + person with action indicator (^)."
+          },
+          {
+            word: "at home",
+            secondaryWord: "en casa",
+            grammarRole: "place",
+            blissIndicator: "none",
+            primaryRadical: "house",
+            secondaryRadical: "heart",
+            blissExplanation: "House roof & walls combined with heart (home)."
+          }
+        ]
+      }
+    };
+
+    /********************************************************************
+     * 4. UI CONTROLS & LANGUAGE LOCALIZATION
+     ********************************************************************/
+    const UI_STRINGS = {
+      es: {
+        presetsHeading: "Prueba un ejemplo rápido:",
+        levelHeading: "Nivel de Simplificación",
+        modeEasyTitle: "Lectura Fácil / Easy Read (SVO)",
+        modeEasyDesc: "Oraciones claras, literales y directas (Sujeto + Verbo + Objeto) conservando los detalles importantes.",
+        modeCoreTitle: "Vocabulario Esencial / Telegraphic Bliss Core",
+        modeCoreDesc: "Conceptos esenciales puros sin conectores innecesarios. Ideal para tableros de comunicación aumentativa (CAA).",
+        simplifyBtnText: "Simplificar y Crear Símbolos Bliss",
+        simplifiedOutputHeading: "Texto Simplificado (Lectura Fácil)",
+        speakBtnText: "Escuchar Frase",
+        copyBtnText: "Copiar",
+        blissBoardTitle: "Versión en Símbolos Bliss (Blissymbolics)",
+        blissBoardSub: "Pulsa cualquier tarjeta para escuchar la palabra en voz alta y ver cómo se construye su símbolo Bliss.",
+        inspectorSpeakLabel: "Pronunciar palabra",
+        emptyError: "Por favor, escribe una frase o selecciona uno de los ejemplos de arriba."
+      },
+      en: {
+        presetsHeading: "Try a quick preset example:",
+        levelHeading: "Simplification Mode",
+        modeEasyTitle: "Easy Read / Clear SVO Sentences",
+        modeEasyDesc: "Clear, literal Subject-Verb-Object sentences keeping important everyday details.",
+        modeCoreTitle: "Core Vocabulary / Telegraphic Bliss",
+        modeCoreDesc: "Pure core concepts without filler words. Ideal for AAC communication boards and symbol users.",
+        simplifyBtnText: "Simplify & Generate Bliss Symbols",
+        simplifiedOutputHeading: "Simplified Text Output",
+        speakBtnText: "Read Aloud",
+        copyBtnText: "Copy",
+        blissBoardTitle: "Blissymbolics Visual Sentence",
+        blissBoardSub: "Click or tap any Bliss card to hear it spoken aloud and inspect its visual symbol components.",
+        inspectorSpeakLabel: "Speak Word",
+        emptyError: "Please enter some text or choose one of the preset examples above."
+      }
+    };
+
+    function setLanguage(lang) {
+      state.lang = lang;
+      const esBtn = document.getElementById('langEsBtn');
+      const enBtn = document.getElementById('langEnBtn');
+
+      if (lang === 'es') {
+        esBtn.className = "px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition bg-blue-600 text-white shadow-sm";
+        enBtn.className = "px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition text-slate-700 hover:text-slate-900";
+      } else {
+        enBtn.className = "px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition bg-blue-600 text-white shadow-sm";
+        esBtn.className = "px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition text-slate-700 hover:text-slate-900";
+      }
+
+      // Update UI labels
+      const t = UI_STRINGS[lang];
+      document.getElementById('presetsHeading').textContent = t.presetsHeading;
+      document.getElementById('levelHeading').textContent = t.levelHeading;
+      document.getElementById('modeEasyTitle').textContent = t.modeEasyTitle;
+      document.getElementById('modeEasyDesc').textContent = t.modeEasyDesc;
+      document.getElementById('modeCoreTitle').textContent = t.modeCoreTitle;
+      document.getElementById('modeCoreDesc').textContent = t.modeCoreDesc;
+      document.getElementById('simplifyBtnText').textContent = t.simplifyBtnText;
+      document.getElementById('simplifiedOutputHeading').textContent = t.simplifiedOutputHeading;
+      document.getElementById('speakBtnText').textContent = t.speakBtnText;
+      document.getElementById('copyBtnText').textContent = t.copyBtnText;
+      document.getElementById('blissBoardTitle').textContent = t.blissBoardTitle;
+      document.getElementById('blissBoardSub').textContent = t.blissBoardSub;
+      document.getElementById('inspectorSpeakLabel').textContent = t.inspectorSpeakLabel;
+
+      renderPresetButtons();
+    }
+
+    function renderPresetButtons() {
+      const container = document.getElementById('presetButtonsContainer');
+      const list = PRESETS[state.lang];
+      container.innerHTML = list.map((item, idx) => `
+        <button
+          type="button"
+          onclick="loadPreset(${idx})"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:border-blue-300 border border-slate-300 text-slate-800 text-xs sm:text-sm font-semibold transition"
+        >
+          ${item.label}
+        </button>
+      `).join('');
+    }
+
+    function loadPreset(index) {
+      const item = PRESETS[state.lang][index];
+      if (!item) return;
+      document.getElementById('inputText').value = item.text;
+      hideStatusMessage();
+    }
+
+    function clearInput() {
+      document.getElementById('inputText').value = '';
+      document.getElementById('inputText').focus();
+    }
+
+    function setSimplificationMode(mode) {
+      state.mode = mode;
+      const easyBtn = document.getElementById('modeEasyBtn');
+      const coreBtn = document.getElementById('modeCoreBtn');
+      const easyDot = document.getElementById('modeEasyDot');
+      const coreDot = document.getElementById('modeCoreDot');
+
+      if (mode === 'easy_read') {
+        easyBtn.className = "text-left p-3.5 rounded-xl border-2 border-blue-600 bg-blue-50/70 transition flex items-start gap-3";
+        coreBtn.className = "text-left p-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white transition flex items-start gap-3";
+        easyDot.className = "w-2.5 h-2.5 rounded-full bg-blue-600";
+        coreDot.className = "w-2.5 h-2.5 rounded-full bg-transparent";
+      } else {
+        coreBtn.className = "text-left p-3.5 rounded-xl border-2 border-blue-600 bg-blue-50/70 transition flex items-start gap-3";
+        easyBtn.className = "text-left p-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white transition flex items-start gap-3";
+        coreDot.className = "w-2.5 h-2.5 rounded-full bg-blue-600";
+        easyDot.className = "w-2.5 h-2.5 rounded-full bg-transparent";
+      }
+    }
+
+    function toggleBlissGrid() {
+      state.showGrid = !state.showGrid;
+      document.getElementById('gridBtnLabel').textContent = state.showGrid ? 'Grid: ON' : 'Grid: OFF';
+      if (state.currentResult) {
+        renderBlissBoard(state.currentResult);
+      }
+    }
+
+    function toggleColorCoding() {
+      state.showColors = !state.showColors;
+      document.getElementById('colorBtnLabel').textContent = state.showColors ? 'AAC Colors: ON' : 'AAC Colors: OFF';
+      if (state.currentResult) {
+        renderBlissBoard(state.currentResult);
+      }
+    }
+
+    function toggleHighContrast() {
+      state.highContrast = !state.highContrast;
+      document.body.classList.toggle('high-contrast', state.highContrast);
+    }
+
+    function showStatusMessage(text, type = 'info') {
+      const box = document.getElementById('statusMessage');
+      box.classList.remove('hidden', 'bg-rose-50', 'text-rose-800', 'border-rose-300', 'bg-blue-50', 'text-blue-800', 'border-blue-300', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
+      if (type === 'error') {
+        box.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-300');
+      } else if (type === 'success') {
+        box.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
+      } else {
+        box.classList.add('bg-blue-50', 'text-blue-800', 'border-blue-300');
+      }
+      box.textContent = text;
+    }
+
+    function hideStatusMessage() {
+      document.getElementById('statusMessage').classList.add('hidden');
+    }
+
+    function updateEngineBadge(source) {
+      state.lastEngineUsed = source;
+      const badge = document.getElementById('engineStatusBadge');
+      const dot = document.getElementById('engineStatusDot');
+      const label = document.getElementById('engineStatusText');
+
+      badge.className = "px-3 py-1.5 rounded-xl border-2 text-xs font-bold flex items-center gap-2 shadow-sm transition";
+
+      if (source === 'serverless') {
+        badge.classList.add('border-emerald-400', 'bg-emerald-50', 'text-emerald-950');
+        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-600";
+        label.textContent = state.lang === 'es'
+          ? "Motor: Gemini Cloud (/api/simplify)"
+          : "Engine: Gemini Cloud (/api/simplify)";
+      } else if (source === 'direct_gemini') {
+        badge.classList.add('border-blue-400', 'bg-blue-50', 'text-blue-950');
+        dot.className = "w-2.5 h-2.5 rounded-full bg-blue-600";
+        label.textContent = state.lang === 'es'
+          ? "Motor: Direct Gemini AI"
+          : "Engine: Direct Gemini AI";
+      } else {
+        badge.classList.add('border-amber-400', 'bg-amber-50', 'text-amber-950');
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+        label.textContent = state.lang === 'es'
+          ? "Motor: Offline Local Bliss (Respaldo)"
+          : "Engine: Built-in Offline Fallback";
+      }
+    }
+
+    /********************************************************************
+     * 5. THREE-TIER HYBRID PIPELINE:
+     *    Tier 1: POST /api/simplify (Vercel Serverless Gemini Endpoint)
+     *    Tier 2: Direct Gemini API (Canvas / AI Studio Runtime)
+     *    Tier 3: Built-in Offline Bilingual Semantic Bliss Engine
+     ********************************************************************/
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        return response;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchWithRetry(url, options, maxRetries = 2) {
+      let delay = 800;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) {
+            return await response.json();
+          }
+          if (attempt === maxRetries) {
+            throw new Error(`API returned status ${response.status}`);
+          }
+        } catch (err) {
+          if (attempt === maxRetries) throw err;
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+    }
+
+    /**
+     * Normalizes either the /api/simplify response schema or the direct Gemini schema
+     * into the unified format expected by renderBlissBoard().
+     */
+    function normalizeApiResponse(raw, fallbackText) {
+      if (!raw || typeof raw !== 'object') throw new Error("Invalid payload");
+
+      // Support both { simplifiedText, secondaryTranslation, concepts } and
+      // { easyReadSentence, telegraphicSentence, concepts } schemas
+      const simplifiedText = raw.simplifiedText
+        || (state.mode === 'bliss_core' ? raw.telegraphicSentence : raw.easyReadSentence)
+        || raw.easyReadSentence
+        || fallbackText;
+
+      const secondaryTranslation = raw.secondaryTranslation
+        || (state.mode === 'bliss_core' ? raw.easyReadSentence : raw.telegraphicSentence)
+        || "";
+
+      const rawConcepts = Array.isArray(raw.concepts) ? raw.concepts : [];
+      if (rawConcepts.length === 0) throw new Error("No concepts returned");
+
+      const concepts = rawConcepts.map(c => {
+        if (c.primaryRadical) {
+          return {
+            word: c.word || c.label || "",
+            secondaryWord: c.secondaryWord || c.conceptId || "",
+            grammarRole: c.grammarRole || "noun",
+            blissIndicator: c.blissIndicator || "none",
+            primaryRadical: BLISS_RADICALS[c.primaryRadical] ? c.primaryRadical : "enclosure",
+            secondaryRadical: BLISS_RADICALS[c.secondaryRadical] ? c.secondaryRadical : "none",
+            blissExplanation: c.blissExplanation || c.radicalsExplanation || ""
+          };
+        }
+        // Map from conceptId / grammarType if returned by minimal /api/simplify schema
+        const mapped = mapTokenToOfflineConcept(c.label || c.conceptId || "palabra", state.lang);
+        return {
+          word: c.label || mapped.word,
+          secondaryWord: c.conceptId || mapped.secondaryWord,
+          grammarRole: mapped.grammarRole,
+          blissIndicator: c.grammarType === 'action' ? 'action'
+            : c.grammarType === 'evaluation' ? 'evaluation'
+            : c.grammarType === 'thing' ? 'thing' : mapped.blissIndicator,
+          primaryRadical: mapped.primaryRadical,
+          secondaryRadical: mapped.secondaryRadical,
+          blissExplanation: c.radicalsExplanation || mapped.blissExplanation
+        };
+      });
+
+      return { simplifiedText, secondaryTranslation, concepts };
+    }
+
+    async function processTextWithGemini() {
+      const inputEl = document.getElementById('inputText');
+      const rawText = inputEl.value.trim();
+
+      if (!rawText) {
+        showStatusMessage(UI_STRINGS[state.lang].emptyError, 'error');
+        return;
+      }
+
+      hideStatusMessage();
+      const simplifyBtn = document.getElementById('simplifyBtn');
+      const loadingSection = document.getElementById('loadingSection');
+      simplifyBtn.disabled = true;
+      loadingSection.classList.remove('hidden');
+
+      const allowedRadicals = Object.keys(BLISS_RADICALS);
+
+      // TIER 1: Try calling the deployed Vercel serverless endpoint `/api/simplify`
+      try {
+        const serverlessRes = await fetchWithTimeout('/api/simplify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: rawText,
+            lang: state.lang,
+            mode: state.mode
+          })
+        }, 4500);
+
+        if (serverlessRes && serverlessRes.ok) {
+          const serverlessJson = await serverlessRes.json();
+          const normalized = normalizeApiResponse(serverlessJson, rawText);
+          state.currentResult = normalized;
+          updateEngineBadge('serverless');
+          renderBlissBoard(normalized);
+          simplifyBtn.disabled = false;
+          loadingSection.classList.add('hidden');
+          return;
+        }
+      } catch (serverlessErr) {
+        // `/api/simplify` is unreachable (e.g., running in local preview or static sandbox).
+        // Proceed seamlessly to Tier 2 (Direct Gemini API) and Tier 3 (Built-in Offline Engine).
+      }
+
+      // TIER 2: Direct Gemini API call (works in AI Studio / Canvas environments)
+      const systemInstruction = `You are an expert in Easy Read (Lectura Fácil), Augmentative and Alternative Communication (AAC), and Charles K. Bliss's Blissymbolics system.
+Your task:
+1. Take the user's input text and simplify it into "${state.lang === 'es' ? 'Spanish (Español)' : 'English'}" according to the requested simplification mode:
+   - If mode is "easy_read": Produce short, literal, clear Subject-Verb-Object (SVO) sentences with everyday words. Avoid passive voice, idioms, or complex subordinate clauses.
+   - If mode is "bliss_core": Produce ultra-concise telegraphic core vocabulary sentences (e.g., "Yo tener dolor cabeza. Yo querer beber agua fría.").
+2. Also provide a translation of the simplified sentence in the other language (${state.lang === 'es' ? 'English' : 'Spanish'}) in secondaryTranslation.
+3. Decompose the simplified message into a sequence of 4 to 14 core Blissymbolics concepts.
+4. For each concept, choose:
+   - word: the core word/gloss in ${state.lang === 'es' ? 'Spanish' : 'English'} (use infinitive or clear base form for verbs if in bliss_core mode, or natural simple word in easy_read).
+   - secondaryWord: translation of that gloss in ${state.lang === 'es' ? 'English' : 'Spanish'}.
+   - grammarRole: one of ["pronoun", "verb", "noun", "adjective", "time", "place", "negation", "question", "social"].
+   - blissIndicator: one of ["action", "evaluation", "thing", "plural", "past", "future", "none"]. (Use "action" for verbs, "evaluation" for adjectives/feelings, "thing" for concrete nouns).
+   - primaryRadical: Pick the best semantic radical from this exact list: ${JSON.stringify(allowedRadicals)}.
+   - secondaryRadical: Pick a second combining radical from the same list to form a compound Blissymbol (for example: "school" = "house" + "book"; "hospital" = "house" + "medical"; "bus" = "wheel" + "house"; "happy" = "heart" + "arrow_up"; "sad" = "heart" + "arrow_down"; "anxious/nervous" = "heart" + "pain"; "eat" = "mouth" + "food"; "listen" = "ear" + "none"; "tomorrow" = "sun" + "arrow_right"; "no/not" = "negation" + "none"), or "none" if a single radical is sufficient.
+   - blissExplanation: A concise 1-sentence explanation in ${state.lang === 'es' ? 'Spanish' : 'English'} of how the graphical Bliss radicals combine to represent this word.`;
+
+      const userPrompt = `Target Language: ${state.lang === 'es' ? 'Spanish' : 'English'}
+Simplification Mode: ${state.mode}
+Input Text: "${rawText}"`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              simplifiedText: { type: "STRING" },
+              secondaryTranslation: { type: "STRING" },
+              concepts: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    word: { type: "STRING" },
+                    secondaryWord: { type: "STRING" },
+                    grammarRole: {
+                      type: "STRING",
+                      enum: ["pronoun", "verb", "noun", "adjective", "time", "place", "negation", "question", "social"]
+                    },
+                    blissIndicator: {
+                      type: "STRING",
+                      enum: ["action", "evaluation", "thing", "plural", "past", "future", "none"]
+                    },
+                    primaryRadical: {
+                      type: "STRING",
+                      enum: allowedRadicals
+                    },
+                    secondaryRadical: {
+                      type: "STRING",
+                      enum: [...allowedRadicals, "none"]
+                    },
+                    blissExplanation: { type: "STRING" }
+                  },
+                  required: ["word", "secondaryWord", "grammarRole", "blissIndicator", "primaryRadical", "secondaryRadical", "blissExplanation"]
+                }
+              }
+            },
+            required: ["simplifiedText", "secondaryTranslation", "concepts"]
+          }
+        }
+      };
+
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      try {
+        const result = await fetchWithRetry(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const rawJson = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawJson) {
+          throw new Error("Empty response from model.");
+        }
+
+        const parsed = JSON.parse(rawJson);
+        state.currentResult = parsed;
+        updateEngineBadge('direct_gemini');
+        renderBlissBoard(parsed);
+      } catch (error) {
+        // TIER 3: Rich Built-in Offline Bilingual Semantic Bliss Engine
+        const fallback = buildLocalFallback(rawText);
+        state.currentResult = fallback;
+        updateEngineBadge('offline_fallback');
+        renderBlissBoard(fallback);
+        showStatusMessage(
+          state.lang === 'es'
+            ? "Modo sin conexión activo: `/api/simplify` no detectado. Se ha simplificado el texto con el motor semántico Bliss integrado."
+            : "Offline mode active: `/api/simplify` not detected. Simplified text using the built-in semantic Blissymbolics engine.",
+          'info'
+        );
+      } finally {
+        simplifyBtn.disabled = false;
+        loadingSection.classList.add('hidden');
+      }
+    }
+
+    /**
+     * TIER 3: Rich Offline Bilingual Dictionary & Simplifier Engine
+     * Maps Spanish & English vocabulary to authentic compound Blissymbol radicals
+     * when running offline or without `/api/simplify`.
+     */
+    const OFFLINE_LEXICON = [
+      { match: /^(yo|me|mi|mí|i|me|my)$/i, es: "Yo", en: "I", role: "pronoun", ind: "none", r1: "person_1", r2: "none", expEs: "Persona con el número 1 (primera persona: Yo).", expEn: "Person radical with number 1 (First person: I)." },
+      { match: /^(tú|tu|te|usted|you|your)$/i, es: "Tú", en: "You", role: "pronoun", ind: "none", r1: "person_2", r2: "none", expEs: "Persona con el número 2 (segunda persona: Tú).", expEn: "Person radical with number 2 (Second person: You)." },
+      { match: /^(él|ella|he|she|him|her)$/i, es: "Él / Ella", en: "He / She", role: "pronoun", ind: "none", r1: "person_3", r2: "none", expEs: "Persona con el número 3 (tercera persona).", expEn: "Person radical with number 3 (Third person)." },
+      { match: /^(nosotros|nosotras|nos|we|us|our)$/i, es: "Nosotros", en: "We", role: "pronoun", ind: "plural", r1: "person_1", r2: "plus", expEs: "Primera persona plural con indicador multiplicador (×).", expEn: "First person plural with multiplier indicator (×)." },
+      { match: /^(familia|padres|family|parents)$/i, es: "familia", en: "family", role: "noun", ind: "plural", r1: "person", r2: "heart", expEs: "Personas unidas por afecto (corazón) bajo plural.", expEn: "People united by heart/care under plural indicator." },
+      { match: /^(personas|gente|people)$/i, es: "personas", en: "people", role: "noun", ind: "plural", r1: "person", r2: "none", expEs: "Radical de ser humano con indicador de plural (×).", expEn: "Human person radical with plural indicator (×)." },
+      { match: /^(doctor|doctora|médico|médica|physician)$/i, es: "doctor", en: "doctor", role: "noun", ind: "none", r1: "person", r2: "medical", expEs: "Persona + cruz médica de salud.", expEn: "Person radical + medical health cross." },
+      { match: /^(no|nunca|jamás|not|never|dont|don't|cannot|can't)$/i, es: "no", en: "not / no", role: "negation", ind: "none", r1: "negation", r2: "none", expEs: "Barra horizontal tachada de negación en Bliss.", expEn: "Horizontal bar crossed by vertical slash for negation." },
+      { match: /^(querer|quiero|necesitar|necesito|necesitaría|gustaría|preferir|prefiero|want|need|would|like|prefer)$/i, es: "querer", en: "want / need", role: "verb", ind: "action", r1: "heart", r2: "fire", expEs: "Sentimiento (corazón) + llama de deseo con indicador de verbo (^).", expEn: "Heart (feeling) + flame (desire) with action indicator (^)." },
+      { match: /^(tener|tengo|tenemos|have|has|had)$/i, es: "tener", en: "have", role: "verb", ind: "action", r1: "hand", r2: "plus", expEs: "Mano que sostiene + signo de adición bajo acción (^).", expEn: "Holding hand + addition sign under action cone (^)." },
+      { match: /^(sentir|siento|encuentro|feel|feeling)$/i, es: "sentir", en: "feel", role: "verb", ind: "action", r1: "heart", r2: "none", expEs: "Corazón con indicador superior de verbo/acción (^).", expEn: "Heart radical with top action indicator (^)." },
+      { match: /^(beber|tomar|drink|drinking)$/i, es: "beber", en: "drink", role: "verb", ind: "action", r1: "drink", r2: "none", expEs: "Boca + onda de agua bajo indicador de acción (^).", expEn: "Mouth circle + water wave under action cone (^)." },
+      { match: /^(comer|almorzar|almorzado|eat|eating|eaten|lunch)$/i, es: "comer", en: "eat", role: "verb", ind: "action", r1: "mouth", r2: "food", expEs: "Boca + alimento sobre la tierra con indicador de acción (^).", expEn: "Mouth + food radical with top action indicator (^)." },
+      { match: /^(ir|asistir|vamos|voy|go|going|attend)$/i, es: "ir", en: "go", role: "verb", ind: "action", r1: "legs", r2: "arrow_right", expEs: "Piernas caminando + flecha de avance con acción (^).", expEn: "Walking legs + forward arrow with action indicator (^)." },
+      { match: /^(descansar|dormir|rest|resting|sleep)$/i, es: "descansar", en: "rest", role: "verb", ind: "action", r1: "bed", r2: "person", expEs: "Plataforma de cama + persona con indicador de acción (^).", expEn: "Bed platform + person with action indicator (^)." },
+      { match: /^(escuchar|oír|listen|hear)$/i, es: "escuchar", en: "listen", role: "verb", ind: "action", r1: "ear", r2: "none", expEs: "Curva de la oreja con indicador superior de acción (^).", expEn: "Ear radical with top action indicator (^)." },
+      { match: /^(hablar|hablando|decir|talk|talking|speak)$/i, es: "hablar", en: "speak", role: "verb", ind: "action", r1: "mouth", r2: "arrow_right", expEs: "Círculo de la boca emitiendo hacia adelante con acción (^).", expEn: "Mouth circle projecting forward with action indicator (^)." },
+      { match: /^(ayudar|ayuda|help)$/i, es: "ayudar", en: "help", role: "verb", ind: "action", r1: "hand", r2: "arrow_up", expEs: "Mano de apoyo elevando hacia arriba.", expEn: "Supporting hand lifting upward." },
+      { match: /^(dolor|duele|indispuesto|mal|pain|hurt|ache|headache|unwell)$/i, es: "dolor", en: "pain / hurt", role: "noun", ind: "thing", r1: "pain", r2: "heart", expEs: "Rayo quebrado de dolor físico/sensación intensa.", expEn: "Sharp zig-zag lightning radical representing pain." },
+      { match: /^(cabeza|mente|head|mind|brain)$/i, es: "cabeza", en: "head", role: "noun", ind: "thing", r1: "mind", r2: "person", expEs: "Bóveda superior de la cabeza/mente con indicador de cosa (□).", expEn: "Top skull/mind arch with concrete thing indicator (□)." },
+      { match: /^(agua|vaso|water|glass)$/i, es: "agua", en: "water", role: "noun", ind: "thing", r1: "water", r2: "none", expEs: "Onda sinusoidal clásica de Bliss para el agua.", expEn: "Classic Bliss sinusoidal wave representing water." },
+      { match: /^(comida|alimento|food|meal)$/i, es: "comida", en: "food", role: "noun", ind: "thing", r1: "food", r2: "none", expEs: "Círculo de boca sobre línea de tierra con indicador de cosa (□).", expEn: "Mouth circle over earth line with thing indicator (□)." },
+      { match: /^(hambre|hungry|hunger)$/i, es: "hambre", en: "hungry", role: "adjective", ind: "evaluation", r1: "food", r2: "pain", expEs: "Necesidad intensa de alimento con indicador descriptivo (∨).", expEn: "Food radical + sharp need under evaluation cone (∨)." },
+      { match: /^(fría|frio|frío|fresca|cold|cool|fresh)$/i, es: "fría", en: "cold", role: "adjective", ind: "evaluation", r1: "cold", r2: "none", expEs: "Cristal de hielo sobre barra horizontal con evaluación (∨).", expEn: "Ice crystal radical with evaluation indicator (∨)." },
+      { match: /^(caliente|cálido|hot|warm)$/i, es: "caliente", en: "hot", role: "adjective", ind: "evaluation", r1: "fire", r2: "none", expEs: "Llama de fuego ascendente con indicador de adjetivo (∨).", expEn: "Rising flame radical with evaluation indicator (∨)." },
+      { match: /^(casa|hogar|habitación|comedor|home|house|room|table)$/i, es: "casa", en: "home / room", role: "place", ind: "thing", r1: "house", r2: "heart", expEs: "Tejado y muros sobre la línea de tierra.", expEn: "Roof peak and walls grounded on the earth line." },
+      { match: /^(escuela|colegio|clase|school|class)$/i, es: "escuela", en: "school", role: "place", ind: "thing", r1: "house", r2: "book", expEs: "Edificio (casa) + libro abierto del conocimiento.", expEn: "Building (house) + open book of knowledge." },
+      { match: /^(hospital|clínica|cita|médica|medical|appointment|clinic)$/i, es: "hospital / cita", en: "hospital", role: "place", ind: "thing", r1: "house", r2: "medical", expEs: "Edificio protector combinado con la cruz sanitaria.", expEn: "Building enclosure combined with medical cross." },
+      { match: /^(autobús|bus|coche|transporte|car|train)$/i, es: "autobús", en: "bus", role: "noun", ind: "thing", r1: "wheel", r2: "house", expEs: "Rueda con eje sobre la tierra + estructura de vehículo.", expEn: "Spoked wheel on earth + vehicle structure." },
+      { match: /^(mañana|tomorrow|morning)$/i, es: "mañana", en: "tomorrow", role: "time", ind: "future", r1: "sun", r2: "arrow_right", expEs: "Círculo del sol (día) avanzando hacia el futuro.", expEn: "Sun circle (day) with forward future arrow." },
+      { match: /^(hoy|ahora|today|now)$/i, es: "hoy", en: "today", role: "time", ind: "none", r1: "sun", r2: "time", expEs: "Sol del día presente con indicador de reloj/ahora.", expEn: "Present day sun combined with clock pointer." },
+      { match: /^(nervioso|abrumado|ansioso|ruido|fuerte|anxious|overwhelmed|loud|noisy)$/i, es: "abrumado", en: "overwhelmed", role: "adjective", ind: "evaluation", r1: "heart", r2: "pain", expEs: "Corazón + tensión sensorial con indicador descriptivo (∨).", expEn: "Heart + sensory tension zig-zag under evaluation (∨)." },
+      { match: /^(música|canción|music|song)$/i, es: "música", en: "music", role: "noun", ind: "thing", r1: "music", r2: "none", expEs: "Oreja auditiva junto a onda armónica.", expEn: "Ear radical paired with harmonic sound wave." },
+      { match: /^(tranquila|calma|silencio|calm|quiet|peaceful)$/i, es: "tranquila", en: "calm", role: "adjective", ind: "evaluation", r1: "heart", r2: "water", expEs: "Corazón sereno como onda suave con indicador (∨).", expEn: "Serene heart + gentle wave under evaluation cone (∨)." }
+    ];
+
+    function mapTokenToOfflineConcept(token, lang) {
+      const clean = token.toLowerCase().replace(/[.,;!?¿¡"()]/g, '').trim();
+      for (const entry of OFFLINE_LEXICON) {
+        if (entry.match.test(clean)) {
+          return {
+            word: lang === 'es' ? entry.es : entry.en,
+            secondaryWord: lang === 'es' ? entry.en : entry.es,
+            grammarRole: entry.role,
+            blissIndicator: entry.ind,
+            primaryRadical: entry.r1,
+            secondaryRadical: entry.r2,
+            blissExplanation: lang === 'es' ? entry.expEs : entry.expEn
+          };
+        }
+      }
+      return {
+        word: clean,
+        secondaryWord: clean,
+        grammarRole: "noun",
+        blissIndicator: "thing",
+        primaryRadical: "enclosure",
+        secondaryRadical: "mouth",
+        blissExplanation: lang === 'es'
+          ? "Símbolo compuesto de concepto y comunicación."
+          : "Composite concept and communication symbol."
+      };
+    }
+
+    function buildLocalFallback(text) {
+      const stopwords = /^(el|la|los|las|un|una|unos|unas|de|del|al|a|en|por|para|con|que|porque|desde|esta|este|muy|bastante|muchísimo|mucho|disculpe|todavía|the|a|an|of|to|in|on|at|for|with|because|since|this|quite|very|really|excuse|yet|anything|whenever|too|many|are|is|am|be|able|have|had)$/i;
+      const rawTokens = text
+        .replace(/[.,;!?¿¡"()]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+
+      const matchedConcepts = [];
+      const seenWords = new Set();
+
+      for (const tok of rawTokens) {
+        const lower = tok.toLowerCase();
+        // Check if token matches our rich Bliss lexicon first
+        const isKnown = OFFLINE_LEXICON.some(e => e.match.test(lower));
+        if (isKnown || (!stopwords.test(lower) && tok.length > 2)) {
+          const concept = mapTokenToOfflineConcept(tok, state.lang);
+          const key = `${concept.word}-${concept.primaryRadical}`;
+          if (!seenWords.has(key) && matchedConcepts.length < 11) {
+            seenWords.add(key);
+            matchedConcepts.push(concept);
+          }
+        }
+      }
+
+      if (matchedConcepts.length === 0) {
+        matchedConcepts.push(mapTokenToOfflineConcept(state.lang === 'es' ? 'hablar' : 'speak', state.lang));
+      }
+
+      const telegraphicPrimary = matchedConcepts.map(c => c.word).join(' • ');
+      const telegraphicSecondary = matchedConcepts.map(c => c.secondaryWord).join(' • ');
+
+      const easyPrimary = state.mode === 'bliss_core'
+        ? telegraphicPrimary
+        : matchedConcepts.map(c => c.word).join(' ') + '.';
+
+      return {
+        simplifiedText: easyPrimary.charAt(0).toUpperCase() + easyPrimary.slice(1),
+        secondaryTranslation: telegraphicSecondary,
+        concepts: matchedConcepts
+      };
+    }
+
+    /********************************************************************
+     * 6. RENDERING THE BLISSYMBOLICS BOARD & INSPECTOR
+     ********************************************************************/
+    function getRoleColorClasses(role) {
+      if (!state.showColors) {
+        return {
+          card: "bg-white border-slate-300",
+          badge: "bg-slate-100 text-slate-700"
+        };
+      }
+      switch (role) {
+        case 'pronoun':
+          return { card: "bg-amber-50/90 border-amber-400", badge: "bg-amber-200 text-amber-950" };
+        case 'verb':
+          return { card: "bg-emerald-50/90 border-emerald-400", badge: "bg-emerald-200 text-emerald-950" };
+        case 'noun':
+          return { card: "bg-orange-50/90 border-orange-400", badge: "bg-orange-200 text-orange-950" };
+        case 'adjective':
+          return { card: "bg-sky-50/90 border-sky-400", badge: "bg-sky-200 text-sky-950" };
+        case 'negation':
+        case 'question':
+          return { card: "bg-rose-50/90 border-rose-400", badge: "bg-rose-200 text-rose-950" };
+        default:
+          return { card: "bg-purple-50/90 border-purple-400", badge: "bg-purple-200 text-purple-950" };
+      }
+    }
+
+    function renderBlissBoard(data) {
+      document.getElementById('simplifiedTextDisplay').textContent = data.simplifiedText;
+      document.getElementById('secondaryTranslationDisplay').textContent = data.secondaryTranslation
+        ? `🌐 ${data.secondaryTranslation}`
+        : '';
+
+      const container = document.getElementById('blissCardsContainer');
+      const gridClass = state.showGrid ? 'bliss-grid-bg' : '';
+
+      container.innerHTML = data.concepts.map((concept, idx) => {
+        const colors = getRoleColorClasses(concept.grammarRole);
+        const svgMarkup = renderBlissSVG(concept);
+
+        return `
+          <button
+            type="button"
+            id="blissCard-${idx}"
+            onclick="selectAndSpeakCard(${idx})"
+            class="group w-32 sm:w-36 rounded-2xl border-2 ${colors.card} p-3 flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 hc-bliss-card"
+          >
+            <!-- Top Grammar Role Tag -->
+            <div class="w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-wider mb-1">
+              <span class="px-1.5 py-0.5 rounded ${colors.badge} truncate">${concept.grammarRole}</span>
+              <span class="text-slate-400 group-hover:text-blue-600 transition">🔊</span>
+            </div>
+
+            <!-- Bliss Graphical Symbol Canvas -->
+            <div class="w-24 h-24 rounded-xl bg-white border border-slate-200 p-1.5 flex items-center justify-center my-1 ${gridClass}">
+              ${svgMarkup}
+            </div>
+
+            <!-- Primary Word Gloss underneath -->
+            <div class="text-center mt-1.5 w-full">
+              <div class="text-sm sm:text-base font-extrabold text-slate-900 leading-tight break-words">
+                ${concept.word}
+              </div>
+              <div class="text-[11px] font-medium text-slate-500 truncate mt-0.5">
+                ${concept.secondaryWord || ''}
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      if (data.concepts.length > 0) {
+        updateInspector(0);
+      }
+    }
+
+    function selectAndSpeakCard(index) {
+      updateInspector(index);
+      const concept = state.currentResult?.concepts?.[index];
+      if (!concept) return;
+
+      // Visual pulse on the clicked card
+      document.querySelectorAll('[id^="blissCard-"]').forEach(el => el.classList.remove('bliss-card-active'));
+      const cardEl = document.getElementById(`blissCard-${index}`);
+      if (cardEl) {
+        cardEl.classList.add('bliss-card-active');
+        setTimeout(() => cardEl.classList.remove('bliss-card-active'), 700);
+      }
+
+      speakText(concept.word, state.lang);
+    }
+
+    function updateInspector(index) {
+      state.inspectedCardIndex = index;
+      const concept = state.currentResult?.concepts?.[index];
+      if (!concept) return;
+
+      document.getElementById('inspectorSvgBox').innerHTML = renderBlissSVG(concept);
+      document.getElementById('inspectorWord').textContent = `${concept.word} (${concept.secondaryWord})`;
+      document.getElementById('inspectorGrammarBadge').textContent = `${concept.grammarRole} • ${concept.blissIndicator}`;
+      document.getElementById('inspectorExplanation').textContent = concept.blissExplanation;
+    }
+
+    function speakInspectedCard() {
+      const concept = state.currentResult?.concepts?.[state.inspectedCardIndex];
+      if (concept) {
+        speakText(concept.word, state.lang);
+      }
+    }
+
+    /********************************************************************
+     * 7. TEXT-TO-SPEECH (WEB SPEECH API) & CLIPBOARD
+     ********************************************************************/
+    function speakText(text, langCode) {
+      if (!('speechSynthesis' in window)) {
+        showStatusMessage("Tu navegador no soporta síntesis de voz / Web Speech API not supported.", "error");
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode === 'es' ? 'es-ES' : 'en-US';
+      utterance.rate = 0.92; // Slightly slower for AAC clarity
+
+      const stopBtn = document.getElementById('stopSpeechBtn');
+      utterance.onstart = () => stopBtn.classList.remove('hidden');
+      utterance.onend = () => stopBtn.classList.add('hidden');
+      utterance.onerror = () => stopBtn.classList.add('hidden');
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function speakSimplifiedSentence() {
+      if (!state.currentResult?.simplifiedText) return;
+      speakText(state.currentResult.simplifiedText, state.lang);
+    }
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      document.getElementById('stopSpeechBtn').classList.add('hidden');
+    }
+
+    function copySimplifiedText() {
+      if (!state.currentResult?.simplifiedText) return;
+      const tempInput = document.createElement('textarea');
+      tempInput.value = state.currentResult.simplifiedText;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+
+      const copyBtnText = document.getElementById('copyBtnText');
+      const original = copyBtnText.textContent;
+      copyBtnText.textContent = state.lang === 'es' ? '¡Copiado!' : 'Copied!';
+      setTimeout(() => {
+        copyBtnText.textContent = original;
+      }, 1500);
+    }
+
+    /********************************************************************
+     * 8. VERCEL DEPLOY KIT MODAL & COPY HELPERS
+     ********************************************************************/
+    const VERCEL_API_CODE = `import { GoogleGenAI, Type } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+const ALLOWED_RADICALS = [
+  "person","person_1","person_2","person_3","heart","mind","mouth","eye","ear",
+  "water","food","drink","house","medical","legs","wheel","sun","moon","bed",
+  "book","chair","arrow_up","arrow_down","arrow_right","arrow_left","negation",
+  "question","hand","pain","fire","cold","plus","enclosure","music","time"
+];
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  try {
+    const { text, lang = "es", mode = "easy_read" } = req.body;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: \`Simplify this \${lang === "es" ? "Spanish" : "English"} text in mode "\${mode}": "\${text}"\`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            simplifiedText: { type: Type.STRING },
+            secondaryTranslation: { type: Type.STRING },
+            concepts: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  word: { type: Type.STRING },
+                  secondaryWord: { type: Type.STRING },
+                  grammarRole: {
+                    type: Type.STRING,
+                    enum: ["pronoun","verb","noun","adjective","time","place","negation","question","social"]
+                  },
+                  blissIndicator: {
+                    type: Type.STRING,
+                    enum: ["action","evaluation","thing","plural","past","future","none"]
+                  },
+                  primaryRadical: { type: Type.STRING, enum: ALLOWED_RADICALS },
+                  secondaryRadical: { type: Type.STRING, enum: [...ALLOWED_RADICALS, "none"] },
+                  blissExplanation: { type: Type.STRING }
+                },
+                required: ["word","secondaryWord","grammarRole","blissIndicator","primaryRadical","secondaryRadical","blissExplanation"]
+              }
+            }
+          },
+          required: ["simplifiedText", "secondaryTranslation", "concepts"]
+        }
+      }
+    });
+
+    return res.status(200).json(JSON.parse(response.text));
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}`;
+
+    const VERCEL_PKG_CODE = `{
+  "name": "blissbridge-aac",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@google/genai": "^1.0.0"
+  }
+}`;
+
+    function openDeployModal() {
+      document.getElementById('vercelApiCode').textContent = VERCEL_API_CODE;
+      document.getElementById('vercelPkgCode').textContent = VERCEL_PKG_CODE;
+      document.getElementById('deployModal').classList.remove('hidden');
+    }
+
+    function closeDeployModal() {
+      document.getElementById('deployModal').classList.add('hidden');
+    }
+
+    function copyDeployCode(preId, btnId) {
+      const codeText = document.getElementById(preId).textContent;
+      const temp = document.createElement('textarea');
+      temp.value = codeText;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+
+      const btn = document.getElementById(btnId);
+      const original = btn.textContent;
+      btn.textContent = "✓ Copied!";
+      setTimeout(() => { btn.textContent = original; }, 1600);
+    }
+
+    /********************************************************************
+     * 9. INITIALIZE ON WINDOW LOAD
+     ********************************************************************/
+    window.onload = function () {
+      setLanguage('es');
+      document.getElementById('inputText').value = PRESETS.es[0].text;
+      state.currentResult = INITIAL_DEMO.es;
+      renderBlissBoard(INITIAL_DEMO.es);
+    };
+  </script>
+</body>
+</html>
